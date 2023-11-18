@@ -1,0 +1,89 @@
+;Booth's Multiplication Algorithm Implementation
+
+variableA: 0b0          ; Acumulador para el resultado parcial
+Q: 0b10000001           ; Multiplicador
+Q_1: 0b0                ; Q-1, inicializado en 0
+M: 0b11111101           ; Multiplicando
+count: 0x8              ; Contador de ciclos, inicializado en 8
+D: 0b00000001           ; Máscara para el LSB (1 bit)
+complement_D: 0b11111110 ; Complemento de D para decrementar count
+
+inicio:
+    mov ACC, count
+    mov DPTR, ACC
+    mov ACC, [DPTR]      ; Carga el valor actual de 'count' en el acumulador
+    jz end_algorithm     ; Si 'count' es 0, termina el algoritmo
+
+check_LSB:
+    mov ACC, Q
+    mov DPTR, D
+    mov A, ACC           ; Carga el LSB de Q en A
+    mov ACC, [DPTR]      ; Carga D en ACC
+    and ACC, A           ; Realiza un AND entre Q y D para aislar el LSB de Q
+    jz check_Q_1         ; Si el LSB es 0, pasa a verificar Q-1
+
+add_M:
+    mov DPTR, variableA
+    mov ACC, [DPTR]      ; Carga variableA en ACC
+    mov A, ACC           ; Mueve ACC a A
+    mov DPTR, M
+    mov ACC, [DPTR]      ; Carga M en ACC
+    add ACC, A           ; Suma M y variableA si LSB de Q es 1
+    mov DPTR, variableA
+    mov [DPTR], ACC      ; Guarda el resultado en variableA
+    jmp shift_right      ; Salta a la operación de desplazamiento a la derecha
+
+check_Q_1:
+    mov ACC, Q_1
+    mov DPTR, D
+    mov A, ACC           ; Carga Q-1 en A
+    mov ACC, [DPTR]      ; Carga D en ACC
+    and ACC, A           ; Realiza un AND entre Q-1 y D para aislar el LSB de Q-1
+    jz shift_right       ; Si el LSB de Q-1 es 0, salta al desplazamiento
+
+subtract_M:
+    mov DPTR, M
+    mov ACC, [DPTR]      ; Carga M en ACC
+    inv ACC              ; Invierte los bits de M para obtener el complemento a uno
+    mov A, D
+    add ACC, A           ; Suma 1 para obtener el complemento a dos de M
+    mov A, ACC           ; Guarda el complemento a dos de M en A
+    mov DPTR, variableA
+    mov ACC, [DPTR]      ; Carga variableA en ACC
+    add ACC, A           ; Suma el complemento a dos de M a variableA
+    mov DPTR, variableA
+    mov [DPTR], ACC      ; Guarda el resultado en variableA
+
+shift_right:
+    mov DPTR, variableA
+    mov ACC, [DPTR]      ; Carga variableA en ACC
+    rsh ACC, D           ; Desplaza variableA a la derecha 1 bit
+    mov DPTR, variableA
+    mov [DPTR], ACC      ; Guarda variableA actualizada
+    mov ACC, Q
+    rsh ACC, D           ; Desplaza Q a la derecha 1 bit
+    mov DPTR, Q
+    mov [DPTR], ACC      ; Guarda Q actualizada
+    mov ACC, Q_1
+    mov DPTR, Q_1
+    mov ACC, [DPTR]      ; Carga Q-1 en ACC
+    rsh ACC, D           ; Desplaza Q-1 a la derecha 1 bit
+    mov DPTR, Q_1
+    mov [DPTR], ACC      ; Guarda Q-1 actualizada
+
+decrement_count:
+    mov DPTR, count
+    mov ACC, [DPTR]         ; Cargar el valor actual de 'count' en el acumulador
+    mov A, ACC              ; Mover el valor de 'count' a A para usarlo después en la suma
+    mov DPTR, complement_D  ; Cargar la dirección de 'complement_D' en DPTR
+    mov ACC, [DPTR]         ; Cargar el valor de 'complement_D' en el acumulador
+    add ACC, A              ; Sumar el valor de 'complement_D' a 'count'
+    mov DPTR, count
+    mov [DPTR], ACC         ; Guardar el nuevo valor de 'count' de vuelta en la memoria
+    jz end_algorithm        ; Si 'count' es cero después del decremento, terminar el algoritmo
+    jmp inicio              ; Si 'count' no es cero, continuar con el ciclo
+
+end_algorithm:
+    hlt; Termina el algoritmo
+
+
